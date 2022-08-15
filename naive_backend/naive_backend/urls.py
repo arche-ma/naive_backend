@@ -9,5 +9,4 @@ from django.conf import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("graphql", GraphQLView.as_view(graphiql=True)),
-    path(r'^(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT})
 ]
