@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'graphene_django',
     'rest_framework',
-    'shop'
+    'shop',
+    'api'
 ]
 
 MIDDLEWARE = [
@@ -81,7 +82,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'naive_backend.wsgi.application'
 GRAPHENE = {
-    'SCHEMA': 'naive_backend.schema.schema'
+    'SCHEMA': 'api.schema.schema'
 }
 
 # Database

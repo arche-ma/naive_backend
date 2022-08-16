@@ -1,7 +1,10 @@
+from re import I
 import graphene
 from graphene_django import DjangoObjectType
 from shop.models import Artist, Artwork, Cart, Customer, Order
 from graphene import Enum
+
+from .serializers import CustomerInputSerializer
 
 
 class StatusChoices(Enum):
@@ -84,12 +87,8 @@ class CreateOrder(graphene.Mutation):
 
     @classmethod
     def mutate(cls, root, info, customer, order, cart):
-        customer = Customer(
-            first_name=customer.first_name,
-            surname=customer.surname,
-            email=customer.email,
-            phone=customer.phone
-        )
+        
+        
         customer.save()
         cart_uuid = cart
         cart = Cart.objects.get(pk=cart_uuid)
