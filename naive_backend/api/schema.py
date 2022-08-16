@@ -1,16 +1,24 @@
-from re import I
+
+from graphql import GraphQLError
 import graphene
+import graphql_jwt
 from graphene_django import DjangoObjectType
 from shop.models import Artist, Artwork, Cart, Customer, Order
-from graphene import Enum
+from graphene import Enum, Scalar
 
-from .serializers import CustomerInputSerializer
+from .serializers import CustomerInputSerializer, OrderInputSerializer
+
+
+class ObjectField(Scalar):
+    @staticmethod
+    def serialize(dt):
+        return dt
 
 
 class StatusChoices(Enum):
-    NEW = 'New'
+    NEW = 'NEW'
     ACCEPTED = 'ACCEPTED'
-    PAID = 'Paid'
+    PAID = 'PAID'
     CLOSED = 'CLOSED'
     CANCELLED = 'CANCELLED'
 
@@ -25,7 +33,13 @@ class ArtworkType(DjangoObjectType):
     class Meta:
         model = Artwork
         fields = ('id', 'title', 'description',
-                  'author')
+                  'author', 'price', 'year', 'size_width',
+                  'size_height')
+    image_url = graphene.String()
+
+    def resolve_image_url(self, info):
+        url = info.context.build_absolute_uri(self.image.url)
+        return url
 
 
 class CustomerType(DjangoObjectType):
@@ -82,50 +96,67 @@ class CreateOrder(graphene.Mutation):
         customer = CustomerInput(required=True)
         order = OrderInput(required=True)
 
-
     order = graphene.Field(OrderType)
+    message = ObjectField()
 
     @classmethod
     def mutate(cls, root, info, customer, order, cart):
-        
-        
-        customer.save()
-        cart_uuid = cart
-        cart = Cart.objects.get(pk=cart_uuid)
-        commentary = order.commentary
+        customer_serializer = CustomerInputSerializer(data=customer)
+        if customer_serializer.is_valid():
+            customer = customer_serializer.save()
+            msg = 'success'
+        else:
+            msg = customer_serializer.errors
+            return cls(message=msg, order=None)
+        try:
+            cart = Cart.objects.get(pk=cart)
+        except Cart.DoesNotExist:
+            msg = 'cart object does not exist'
+            return cls(order=None, message=msg)
+
+        items = cart.items.all()
+        if items:
+            order = Order(customer=customer,
+                          commentary=order.commentary)
+            order.save()
+        else:
+            msg = 'cart is empty'
+            print(msg)
+            return cls(order=None, message=msg)
+
         for item in cart.items.all():
             item.on_sale = False
-        order = Order(customer=customer,
-                      commentary=commentary)
-        order.save()
+
         order.items.set(cart.items.all())
-        order.save()
-
         cart.items.clear()
-        return CreateOrder(order=order)
+        return CreateOrder(order=order, message=msg)
 
 
-class ChangeOrder(graphene.Mutation):
+class UpdateOrder(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         order = OrderInput(required=True)
 
     order = graphene.Field(OrderType)
+    message = ObjectField()
 
     @classmethod
     def mutate(cls, root, info, id, order):
-        try:
-            requested_order = Order.objects.get(pk=id)
-            requested_order.items.set(order.items)
-            requested_order.status = order.status
-            requested_order.commentary = order.commentary
-            requested_order.save()
-            return ChangeOrder(order=requested_order)
-        except Order.DoesNotExist as e:
-            return e
+        requested_order = Order.objects.get(id=id)
+        serializer = OrderInputSerializer(requested_order,
+                                          data=order,
+                                          partial=True)
+        if serializer.is_valid():
+            requested_order=serializer.save()
+            msg = 'success'
+        else:
+            msg = serializer.errors
+            requested_order = None
+        return cls(order=requested_order, message=msg)
+        
 
 
-class ChangeCustomer(graphene.Mutation):
+class UpdateCustomer(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         customer = CustomerInput(required=True)
@@ -141,14 +172,17 @@ class ChangeCustomer(graphene.Mutation):
         requested_customer.email = customer.email
         requested_customer.phone = customer.phone
         requested_customer.save()
-        return ChangeCustomer(customer=requested_customer)
+        return UpdateCustomer(customer=requested_customer)
 
 
 class Mutation(graphene.ObjectType):
     update_cart = CartMutation.Field()
     create_oder = CreateOrder.Field()
-    update_order = ChangeOrder.Field()
-    update_customer = ChangeCustomer.Field()
+    update_order = UpdateOrder.Field()
+    update_customer = UpdateCustomer.Field()
+    token_auth = graphql_jwt.ObtainJSONWebToken.Field()
+    verify_token = graphql_jwt.Verify.Field()
+    refresh_token = graphql_jwt.Refresh.Field()
 
 
 class Query(graphene.ObjectType):
@@ -163,15 +197,17 @@ class Query(graphene.ObjectType):
     all_orders = graphene.List(OrderType)
     all_customers = graphene.List(CustomerType)
 
-
     def resolve_all_artworks(root, info):
         return Artwork.objects.select_related('author').filter(on_sale=True)
     
+    def resolve_all_artists(root, info):
+        return Artist.objects.prefetch_related('artworks').all()
+
     def resolve_all_orders(root, info):
         if info.context.user.is_superuser:
             return Order.objects.all()
-        return {'error':'Not an admin'}
-    
+        raise GraphQLError('permission denied')
+
     def resolve_artwork_by_id(root, info, id):
         try:
             return Artwork.objects.get(pk=id)

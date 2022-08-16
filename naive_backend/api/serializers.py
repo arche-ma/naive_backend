@@ -1,22 +1,18 @@
 from rest_framework import serializers
 
-from shop.models import Artwork, Customer
+from shop.models import Artwork, Customer, Order
 
 
 class CustomerInputSerializer(serializers.ModelSerializer):
+    address = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Customer
         fields = ('first_name', 'surname', 'address',
                   'email', 'phone')
 
-class OrderInputSerializer(serializers.Serializer):
-    items = serializers.IntegerField(many=True)
-    commentary = serializers.CharField(blank=True)
-    status = serializers.CharField(blank=False)
 
-    def validate_items(self, items):
-        for item in items:
-            if not Artwork.objects.get(pk=item).exists():
-                raise serializers.ValidationError(
-                    'art object doesn\'t exist')
-        return items
+class OrderInputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'

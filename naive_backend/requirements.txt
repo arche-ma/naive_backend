@@ -2,6 +2,7 @@ aniso8601==7.0.0
 asgiref==3.5.2
 Django==4.1
 django-cors-headers==3.13.0
+django-graphql-jwt==0.3.4
 djangorestframework==3.13.1
 graphene==2.1.9
 graphene-django==2.15.0
@@ -10,6 +11,7 @@ graphql-relay==2.0.1
 gunicorn==20.0.4
 Pillow==9.2.0
 promise==2.3
+PyJWT==2.4.0
 pytz==2022.1
 Rx==1.6.1
 singledispatch==3.7.0

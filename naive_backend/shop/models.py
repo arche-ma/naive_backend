@@ -11,7 +11,7 @@ User = get_user_model()
 class Customer(models.Model):
     first_name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
-    address = models.TextField()
+    address = models.TextField(blank=True)
     email = models.EmailField()
     phone = models.CharField(max_length=100)
 
@@ -61,11 +61,11 @@ class Cart(models.Model):
 
 
 class Order(models.Model):
-    NEW = 'New'
-    ACCEPTED = 'Acc'
-    PAID = 'Paid'
-    CLOSED = 'Cl'
-    CANCELLED = 'Canc'
+    NEW = 'NEW'
+    ACCEPTED = 'ACCEPTED'
+    PAID = 'PAID'
+    CLOSED = 'CLOSED'
+    CANCELLED = 'CANCELLED'
 
     STATUS_CHOICES = [(NEW, 'NEW'), (ACCEPTED, 'ACCEPTED'), (PAID, 'PAID'),
                       (CLOSED, 'CLOSED'), (CANCELLED, 'CANCELLED')]
