@@ -26,7 +26,16 @@ class StatusChoices(Enum):
 class ArtistType(DjangoObjectType):
     class Meta:
         model = Artist
-        fields = ('id', 'name', 'artworks')
+        fields = ('id', 'name', 'artworks', 'bio')
+    
+    image_url = graphene.String()
+    
+    def resolve_image_url(self, info):
+        url = info.context.build_absolute_uri(self.image.url)
+        return url
+
+    def resolve_artworks(self, info):
+        return self.artworks.filter(on_sale=True)
 
 
 class ArtworkType(DjangoObjectType):
@@ -34,7 +43,8 @@ class ArtworkType(DjangoObjectType):
         model = Artwork
         fields = ('id', 'title', 'description',
                   'author', 'price', 'year', 'size_width',
-                  'size_height')
+                  'size_height', 'on_sale')
+
     image_url = graphene.String()
 
     def resolve_image_url(self, info):
@@ -104,7 +114,6 @@ class CreateOrder(graphene.Mutation):
         customer_serializer = CustomerInputSerializer(data=customer)
         if customer_serializer.is_valid():
             customer = customer_serializer.save()
-            msg = 'success'
         else:
             msg = customer_serializer.errors
             return cls(message=msg, order=None)
@@ -119,16 +128,16 @@ class CreateOrder(graphene.Mutation):
             order = Order(customer=customer,
                           commentary=order.commentary)
             order.save()
+            order.items.set(cart.items.all())
+            cart.items.update(on_sale=False)
+            cart.items.clear()
+            msg = 'success'
         else:
             msg = 'cart is empty'
             print(msg)
             return cls(order=None, message=msg)
 
-        for item in cart.items.all():
-            item.on_sale = False
 
-        order.items.set(cart.items.all())
-        cart.items.clear()
         return CreateOrder(order=order, message=msg)
 
 
@@ -210,7 +219,7 @@ class Query(graphene.ObjectType):
 
     def resolve_artwork_by_id(root, info, id):
         try:
-            return Artwork.objects.get(pk=id)
+            return Artwork.objects.get(pk=id, artworks__on_sale=True)
         except Artwork.DoesNotExist:
             return None
 
