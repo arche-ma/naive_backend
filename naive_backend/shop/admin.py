@@ -11,6 +11,7 @@ class OrderAdmin(admin.ModelAdmin):
          (None,
         {'fields': ('total_price',)})
     )
+
     readonly_fields = ('total_price',)
 
 admin.site.register(Artist)

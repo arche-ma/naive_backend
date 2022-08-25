@@ -156,7 +156,7 @@ class UpdateOrder(graphene.Mutation):
                                           data=order,
                                           partial=True)
         if serializer.is_valid():
-            requested_order=serializer.save()
+            requested_order = serializer.save()
             msg = 'success'
         else:
             msg = serializer.errors
@@ -237,4 +237,3 @@ class Query(graphene.ObjectType):
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
-

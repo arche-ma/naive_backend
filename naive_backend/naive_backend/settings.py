@@ -55,7 +55,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'naive_backend.cart_cookie_middleware.CartCookieMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -99,6 +99,8 @@ DATABASES = {
     }
 }
 
+MEDIA_ROOT = BASE_DIR + '/media'
+MEDIA_URL = '/media/'
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static'
 
